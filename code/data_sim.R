@@ -21,6 +21,10 @@ G0<- c(rep(0,5), 0.5, 0.5, 0.5, rep(0,2))
 # Generate Data
 X <- mvrnorm(n, rep(0, p), rho + (1-rho)*diag(p))
 hL <- a0 + X %*% B0
+hN <- (a0 + X %*% B0) * (b0 + X %*% G0)
 
 Y <- rbinom(n,1,g(hL))
 df_linear <- data.frame(Y, X)
+
+Y <- rbinom(n,1,g(hN))
+df_non <- data.frame(Y, X)
