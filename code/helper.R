@@ -38,7 +38,7 @@ outputLinearSVM <- function(c,mse,svp,x,wd,name) {
 }
 
 plotLinearSVM <- function(x,svp,var1,var2) {
-  #plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
+  plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
   title(main='Kernel Space select two dimensions')
   ymat <- ymatrix(svp)
   points(x[-SVindex(svp),var1], x[-SVindex(svp),var2], pch = ifelse(ymat[-SVindex(svp)] < 0, 2, 1))
@@ -71,7 +71,7 @@ outputNLSVM <- function(c,mse,svp,x,y,wd,name,krnl,sig) {
 }
 
 plotQuadraticSVM <- function(x,svp,var1,var2) {
-  #plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
+  plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
   title(main="Feature Space")
   ymat <- ymatrix(svp)
   points(x[-SVindex(svp),var1], x[-SVindex(svp),var2], pch = ifelse(ymat[-SVindex(svp)] < 0, 2, 1))
@@ -95,7 +95,7 @@ plotQuadraticSVM <- function(x,svp,var1,var2) {
 }
 
 plotGaussianSVM <- function(x,svp,sig,var1,var2) {
-  #plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
+  plot(c(min(x[,var1]), max(x[,var1])),c(min(x[,var2]), max(x[,var2])),type='n',xlab=paste0('X',var1),ylab=paste0('X',var2))
   title(main="Feature Space")
   ymat <- ymatrix(svp)
   points(x[-SVindex(svp),var1], x[-SVindex(svp),var2], pch = ifelse(ymat[-SVindex(svp)] < 0, 2, 1))
