@@ -6,7 +6,10 @@ function(input, output, session) {
   
   rv <- reactiveValues(
     
+    #####
     # Data/errors
+    #####
+    
     df_linear = NULL, 
     x = NULL,
     y = NULL,
@@ -23,8 +26,10 @@ function(input, output, session) {
     svmQuad = NULL,
     svmRBF = NULL
   )
-  
+  ######
   # Wrapper around Caleb's basic simulation script. 
+  ######
+  
   observeEvent(input$computeData, {
     # Parameter specifications
     n <- 200
@@ -52,22 +57,30 @@ function(input, output, session) {
     rv$x <- as.matrix(dat[,-1])
     rv$x2 <- makeInteractionMatrix(rv$x)
     rv$y <- as.matrix(dat[, 1])
-    cat("done")
+    print("done")
   })
+  
+  #########
+  # Code repurposed from Matt
+  #########
   
   observeEvent(input$runl1small, {
-    # L1 + linear - CV to tune lambda
-    fit <- cv.glmnet(x=rv$x,y=rv$y,family="binomial",nfolds=10,type.measure="class",standardize=TRUE,intercept=TRUE,alpha=1)
-    outputLasso(fit,wdir,"L1small",coeff=FALSE)
-    rv$l1small <- recordPlot()
-
-    rv$fits[["L1small"]] <- fit$glmnet.fit
-    rv$errs[["L1small"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
+   # L1 + linear - CV to tune lambda
+   fit <- cv.glmnet(x=rv$x,y=rv$y,family="binomial",nfolds=10,type.measure="class",standardize=TRUE,intercept=TRUE,alpha=1)
+   print("called")
+   par(mfrow=c(2,2))
+   outputLasso(fit,wdir,"L1small",coeff=FALSE)
+   rv$l1small <- recordPlot()
+  
+   rv$fits[["L1small"]] <- fit$glmnet.fit
+   rv$errs[["L1small"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
   })
   
+
   observeEvent(input$runl1big, {
     # L1 + interactions - CV to tune lambda
     fit <- cv.glmnet(x=rv$x2,y=rv$y,family="binomial",nfolds=10,type.measure="class",standardize=TRUE,intercept=TRUE,alpha=1)
+    par(mfrow=c(2,2))
     outputLasso(fit,wdir,"L1big",coeff=FALSE)
     rv$l1big <- recordPlot()
     
@@ -81,6 +94,7 @@ function(input, output, session) {
     wts <- 1/abs(matrix(coef(betaOLS)))
     wts[wts[,1] == Inf] <- 999999999 
     fit <- cv.glmnet(rv$x, rv$y, family='binomial',nfolds=10,type.measure="class",alpha=1,standardize=TRUE, penalty.factor=wts)
+    par(mfrow=c(2,2))
     outputLasso(fit,wdir,"ALsmall",coeff=TRUE,wts)
     rv$ALsmall <- recordPlot()
     rv$fits[["ALsmall"]] <- fit$glmnet.fit
@@ -116,7 +130,7 @@ function(input, output, session) {
      
     #rv$fits[["svmLin"]] <- fit
     #rv$errs[["svmLin"]] <- list(params=list(cost=costs[which.min(tunep)]),valMSE=min(tunep))
-    cat("SVM Lin Done")
+    print("SVM Lin Done")
   }) 
   
   observeEvent(input$runsvmRBF, {
@@ -135,7 +149,7 @@ function(input, output, session) {
     rv$svmRBF <- recordPlot()
     #rv$fits[["svmRBF"]] <- fit
     #rv$errs[["svmRBF"]] <- list(params=list(cost=costs[which.min(tunep)]),valMSE=min(tunep))
-    cat("SVM RBF Done")
+    print("SVM RBF Done")
   })
   
   observeEvent(input$runsvmQuad, {
@@ -151,11 +165,30 @@ function(input, output, session) {
     rv$svmQuad <- recordPlot()
     #rv$fits[["svmQuad"]] <- fit
     #rv$errs[["svmQuad"]] <- list(params=list(cost=costs[which.min(tunep)]),valMSE=min(tunep))
-    cat("SVM Quad Done")
+    print("SVM Quad Done")
   })
 
-  
+  ######
   # Render Plots
+  ######
+  
+  
+  # output$l1small <- renderImage({
+  #   if(file.exists("L1small.png")){
+  #     list(src = "L1small.png",
+  #        contentType = 'image/png',
+  #        width = 'auto',
+  #        height = 'auto',
+  #        alt = "This is alternate text")
+  #   } else {
+  #     list(src = NULL,
+  #        contentType = 'image/png',
+  #        width = 400,
+  #        height = 300,
+  #        alt = "This is alternate text")
+  #   }
+  # })
+  
   output$l1small <- renderPlot({
     if(!is.null(rv$l1small)){
       replayPlot(rv$l1small)
@@ -163,6 +196,7 @@ function(input, output, session) {
       NULL
     }
   })
+  
   
   output$l1big <- renderPlot({
     if(!is.null(rv$l1big)){

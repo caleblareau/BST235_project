@@ -7,7 +7,7 @@ makeInteractionMatrix <- function(mat) {
 }
 
 outputLasso <- function(fit,wd,name,coeff,ols) {
-  #png(paste0(wd,"/",name,".png"))
+  #png(paste0(name,".png"))
   par(mfrow=c(2,2))
   plot(fit)
   title(main="CV Misclassification")
@@ -25,6 +25,7 @@ outputLasso <- function(fit,wd,name,coeff,ols) {
     plot(fit$glmnet.fit, xvar = "norm", label = TRUE) 
     title(main="Regularization Path")
   }
+  cat("plot.called")
   #dev.off()
 }
 
