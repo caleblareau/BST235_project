@@ -16,6 +16,11 @@ function(input, output, session) {
     x2 = NULL,
     fits = NULL,
     errs = NULL,
+    B0 = c(1,0.8,0.6,0.4,0.2,rep(0,5)),
+    G0 = c(rep(0,5), 0.5, 0.5, 0.5, rep(0,2)),
+    p = 10, 
+    tempB = 0,
+    tempG = 0,
     
     # Plot objects
     l1small = NULL,
@@ -26,14 +31,51 @@ function(input, output, session) {
     svmQuad = NULL,
     svmRBF = NULL
   )
+  
+  #######
+  # Handle Effect sizes
+  #######
+  observe({
+    if(input$effectSizes == "s1"){
+      rv$B0 <- c(1,0.8,0.6,0.4,0.2,rep(0,rv$p-5))
+      rv$G0 <- c(rep(0,rv$p-5), 0.5, 0.5, 0.5, rep(0,2))
+    } else if(input$effectSizes == "s2") {
+      rv$B0 <- c(1,0.5,rep(0,rv$p-2))
+      rv$G0 <- c(rep(0,rv$p-5), 2, rep(1,4))
+    } else {
+      rv$B0 <- sapply(1:rv$p, function(i){input[[paste0("beta", i, "val")]]})
+      rv$G0 <- sapply(1:rv$p, function(i){input[[paste0("gamma", i, "val")]]})
+    }
+  })
+  
+  observe({  rv$p = input$p  })
+
+  output$betas <- renderUI({
+    lapply(1:rv$p, function(i) {
+      sliderInput(paste0("beta", i, "val"), paste0('b0 Element ', i),
+                  min = 0, max = 5, value = 0, step = 0.1)
+    })
+  })
+  
+  output$gammas <- renderUI({
+    lapply(1:rv$p, function(i) {
+      sliderInput(paste0("gamma", i, "val"), paste0('g0 Element ', i),
+                  min = 0, max = 5, value = 0, step = 0.1)
+    })
+  })
+  
+  # Preview Values
+  output$beta0 <- renderText({paste0("b0 = (", paste(as.character(rv$B0), collapse = ", "), ")")})
+  output$gamma0 <- renderText({paste0("g0 = (", paste(as.character(rv$G0), collapse = ", "), ")") })
+  
   ######
   # Wrapper around Caleb's basic simulation script. 
   ######
   
   observeEvent(input$computeData, {
-    # Parameter specifications
-    n <- 200
-    p <- 10
+    
+    n <- input$n
+    p <- rv$p
     rho <- input$rho
     
     g <- function(x) exp(x)/(1 + exp(x))
@@ -43,8 +85,8 @@ function(input, output, session) {
     b0 <- 0.4
     
     # Effect Sizes
-    B0 <- c(1,0.8,0.6,0.4,0.2,rep(0,5))
-    G0<- c(rep(0,5), 0.5, 0.5, 0.5, rep(0,2))
+    B0 <- rv$B0
+    G0 <- rv$G0 
     
     # Generate Data
     X <- mvrnorm(n, rep(0, p), rho + (1-rho)*diag(p))
@@ -168,26 +210,21 @@ function(input, output, session) {
     print("SVM Quad Done")
   })
 
+  #####
+  # Render Data Visuals
+  ####
+  
+  output$dataTable = renderDataTable({
+    df <- rv$df_linear
+    is.num <- sapply(df, is.numeric)
+    df[is.num] <- lapply(df[is.num], round, 3)
+    df
+  })
+  
   ######
   # Render Plots
   ######
   
-  
-  # output$l1small <- renderImage({
-  #   if(file.exists("L1small.png")){
-  #     list(src = "L1small.png",
-  #        contentType = 'image/png',
-  #        width = 'auto',
-  #        height = 'auto',
-  #        alt = "This is alternate text")
-  #   } else {
-  #     list(src = NULL,
-  #        contentType = 'image/png',
-  #        width = 400,
-  #        height = 300,
-  #        alt = "This is alternate text")
-  #   }
-  # })
   
   output$l1small <- renderPlot({
     if(!is.null(rv$l1small)){
