@@ -10,7 +10,7 @@ function(input, output, session) {
     # Data/errors
     #####
     
-    df_linear = NULL, 
+    df = NULL, 
     x = NULL,
     y = NULL,
     x2 = NULL,
@@ -29,7 +29,8 @@ function(input, output, session) {
     ALbig = NULL,
     svmLin = NULL,
     svmQuad = NULL,
-    svmRBF = NULL
+    svmRBF = NULL,
+    modelsRan = c("Regular" = "Regular")
   )
   
   #######
@@ -67,6 +68,7 @@ function(input, output, session) {
   # Preview Values
   output$beta0 <- renderText({paste0("b0 = (", paste(as.character(rv$B0), collapse = ", "), ")")})
   output$gamma0 <- renderText({paste0("g0 = (", paste(as.character(rv$G0), collapse = ", "), ")") })
+  output$nasHeatmap <- renderUI(radioButtons("heatmapNAs", "Show Heatmap for", rv$modelsRan, selected = "Regular"))
   
   ######
   # Wrapper around Caleb's basic simulation script. 
@@ -90,12 +92,16 @@ function(input, output, session) {
     
     # Generate Data
     X <- mvrnorm(n, rep(0, p), rho + (1-rho)*diag(p))
-    hL <- a0 + X %*% B0
-    hN <- (a0 + X %*% B0) * (b0 + X %*% G0)
     
-    Y <- rbinom(n,1,g(hL))
-    rv$df_linear <- data.frame(Y, X)
-    dat <- rv$df_linear
+    if(input$dataSimType == "linear"){
+      hL <- a0 + X %*% B0
+      Y <- rbinom(n,1,g(hL))
+    } else {
+      hN <- (a0 + X %*% B0) * (b0 + X %*% G0)
+      Y <- rbinom(n,1,g(hN))
+    }
+    rv$df <- data.frame(Y, X)
+    dat <- rv$df
     rv$x <- as.matrix(dat[,-1])
     rv$x2 <- makeInteractionMatrix(rv$x)
     rv$y <- as.matrix(dat[, 1])
@@ -114,8 +120,9 @@ function(input, output, session) {
    outputLasso(fit,wdir,"L1small",coeff=FALSE)
    rv$l1small <- recordPlot()
   
-   rv$fits[["L1small"]] <- fit$glmnet.fit
+   rv$fits[["L1small"]] <- fit
    rv$errs[["L1small"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
+   rv$modelsRan <- unique(c("L1small" = "L1small", rv$modelsRan))
   })
   
 
@@ -126,8 +133,9 @@ function(input, output, session) {
     outputLasso(fit,wdir,"L1big",coeff=FALSE)
     rv$l1big <- recordPlot()
     
-    rv$fits[["L1big"]] <- fit$glmnet.fit
+    rv$fits[["L1big"]] <- fit
     rv$errs[["L1big"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
+    rv$modelsRan <- unique(c("L1big" = "L1big", rv$modelsRan))
   })
   
   observeEvent(input$runALsmall, {
@@ -136,11 +144,11 @@ function(input, output, session) {
     wts <- 1/abs(matrix(coef(betaOLS)))
     wts[wts[,1] == Inf] <- 999999999 
     fit <- cv.glmnet(rv$x, rv$y, family='binomial',nfolds=10,type.measure="class",alpha=1,standardize=TRUE, penalty.factor=wts)
-    par(mfrow=c(2,2))
     outputLasso(fit,wdir,"ALsmall",coeff=TRUE,wts)
     rv$ALsmall <- recordPlot()
-    rv$fits[["ALsmall"]] <- fit$glmnet.fit
+    rv$fits[["ALsmall"]] <- fit
     rv$errs[["ALsmall"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
+    rv$modelsRan <- unique(c("ALsmall" = "ALsmall", rv$modelsRan))
   })
   
   observeEvent(input$runALbig, {
@@ -152,8 +160,9 @@ function(input, output, session) {
     outputLasso(fit,wdir,"ALbig",coeff=FALSE,wts)
     rv$ALbig <- recordPlot()
      
-    rv$fits[["ALbig"]] <- fit$glmnet.fit
+    rv$fits[["ALbig"]] <- fit
     rv$errs[["ALbig"]] <- list(params=list(lambda=fit$lambda.min),valMSE=min(fit$cvm),valSE=fit$cvsd[which.min(fit$cvm)])
+    rv$modelsRan <- unique(c("ALbig" = "ALbig", rv$modelsRan))
   })
   
   observeEvent(input$runsvmLin, {
@@ -178,19 +187,19 @@ function(input, output, session) {
   observeEvent(input$runsvmRBF, {
     # svm gaussian - CV to tune C and sigma
     # range sigma between .1 and .9 quantile of ||x-x'||
-    costs <- c(1)
+    costs <- c(1,5)
     sigs <- sigest(rv$x,scaled=TRUE,frac=1)[2]
     tunep <- lapply(costs, function(i) {
         #fit <- ksvm(x,y,type="C-svc",C=costs[i],kernel="rbfdot",kpar="automatic",scaled=TRUE,cross=10)
-        fit <- ksvm(rv$x,rv$y,type="C-svc",C=costs[i],kernel="rbfdot",kpar=list(sigma=sigs[1]),scaled=TRUE,cross=10)
+        fit <- ksvm(rv$x,rv$y,type="C-svc",C=i,kernel="rbfdot",kpar=list(sigma=sigs[1]),scaled=TRUE,cross=10)
         cross(fit) 
     })
     tunep <- do.call(rbind,tunep)
     fit <- ksvm(rv$x,rv$y,type="C-svc",C=costs[which.min(tunep)],kernel="rbfdot",kpar=list(sigma=sigs[1]),scaled=TRUE)
     outputNLSVM(costs,tunep,fit,rv$x,rv$y,wdir,"svmRBF",krnl="rbf",sigs)
     rv$svmRBF <- recordPlot()
-    #rv$fits[["svmRBF"]] <- fit
-    #rv$errs[["svmRBF"]] <- list(params=list(cost=costs[which.min(tunep)]),valMSE=min(tunep))
+    rv$fits[["svmRBF"]] <- fit
+    rv$errs[["svmRBF"]] <- list(params=list(cost=costs[which.min(tunep)]),valMSE=min(tunep))
     print("SVM RBF Done")
   })
   
@@ -215,7 +224,7 @@ function(input, output, session) {
   ####
   
   output$dataTable = renderDataTable({
-    df <- rv$df_linear
+    df <- rv$df
     is.num <- sapply(df, is.numeric)
     df[is.num] <- lapply(df[is.num], round, 3)
     df
@@ -224,7 +233,26 @@ function(input, output, session) {
   ######
   # Render Plots
   ######
-  
+  output$heatmapOut <- renderD3heatmap({
+    if(!is.null(rv$df)){
+      ddf <- rv$df
+      pdf <- cor(ddf)
+      type <- input$heatmapNAs
+      if(as.character(type) != "Regular"){
+        fit <- rv$fits[[input$heatmapNAs]]
+        
+        # Intercept and Y cancel out so no need to reindex
+        zeros <- which(as.numeric(coef(fit, s = "lambda.min")) == 0)
+        zeros <- zeros[zeros <= rv$p + 1]
+        pdf[zeros,] <- NA
+        pdf[,zeros] <- NA
+        print(pdf)
+      }
+      d3heatmap(pdf, Rowv = FALSE, Colv = FALSE, colors = "YlOrRd")
+    } else {
+      NULL
+    }
+  })
   
   output$l1small <- renderPlot({
     if(!is.null(rv$l1small)){
@@ -282,6 +310,17 @@ function(input, output, session) {
       NULL
     }
   })
+  
+  getAllData <- function(){
+    return(rv$df)
+  }
+  
+  output$downloadRDS <- downloadHandler(
+    filename = function() { paste('dataSim.rds', sep='') },
+    content = function(file) {
+      saveRDS(getAllData(), file)
+    }
+)
 
 }
 

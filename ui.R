@@ -12,6 +12,7 @@ shinyUI(
                     bsCollapsePanel(title = HTML("<h4><b>Simulation Parameters</b></h4>"), value = "Panel1",
                       fluidRow(
                         column(4, 
+                          radioButtons("dataSimType", "Data Type:", c("Linear" = "linear", "Non-Linear" = "nonlin")), 
                           sliderInput('n', 'Sample Size', value = 200, min = 100, max = 500),
                           sliderInput('p', 'Number of Predictors', value = 10, min = 5, max = 20), 
                           sliderInput('rho', 'Variable Correlation', value = 0.8, min = 0.01, max = 0.99)                            
@@ -40,8 +41,13 @@ shinyUI(
                       ))
                   )),
                 conditionalPanel("input.computeData >= 1",
-                  bsCollapse(id = "dataPreview", open = c("data"), multiple = TRUE,
-                    bsCollapsePanel(title = HTML("<h4><b>Table of Data</b></h4>"), value = "data", dataTableOutput('dataTable'))
+                  bsCollapse(id = "dataPreview", open = c("data", "heatmap"), multiple = TRUE,
+                    bsCollapsePanel(title = HTML("<h4><b>Table of Data</b></h4>"), value = "data",
+                                    downloadButton("downloadRDS", "Download Data"), tags$br(), tags$br(), dataTableOutput('dataTable')), 
+                    bsCollapsePanel(title = HTML("<h4><b>Heatmap</b></h4>"), value = "heatmap", 
+                                    d3heatmapOutput("heatmapOut", height = "800"), 
+                                    uiOutput("nasHeatmap")
+                    )
                   )),
                 conditionalPanel("input.computeData >= 1",
                    bsCollapse(id = "plots", open = c(paste0("Panel", LETTERS[1:7])), multiple = TRUE,

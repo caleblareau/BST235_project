@@ -11,6 +11,8 @@ library(glmnet)
 library(kernlab)
 library(shinyBS)
 library(DT)
+library(d3heatmap)
+
 source("code/helper.R")
 
 set.seed(420)
