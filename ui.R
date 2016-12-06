@@ -12,14 +12,15 @@ shinyUI(
                     bsCollapsePanel(title = HTML("<h4><b>Simulation Parameters</b></h4>"), value = "Panel1",
                       fluidRow(
                         column(4, 
-                          radioButtons("dataSimType", "Data Type:", c("Linear" = "linear", "Non-Linear" = "nonlin")), 
-                          sliderInput('n', 'Sample Size', value = 200, min = 100, max = 500),
-                          sliderInput('p', 'Number of Predictors', value = 10, min = 5, max = 20), 
-                          sliderInput('rho', 'Variable Correlation', value = 0.8, min = 0.01, max = 0.99)                            
+                          sliderInput('n', 'Sample Size', value = 200, min = 100, max = 1000),
+                          sliderInput('ngroups', 'Number of Groups', value = 5, min = 5, max = 20), 
+                          sliderInput('npredictors', 'Number of Predictors Per Group', value = 2, min = 1, max = 10),
+                          sliderInput('brho', 'Between-Group Correlation', value = 0.2, min = 0.01, max = 0.99)                            
                         ),
-                        column(4,radioButtons("effectSizes", "Effect Sizes:", c("Suggested 1" = "s1", "Suggested 2" = "s2", "Custom" = "cus")),
-                               textOutput("beta0"),
-                               textOutput("gamma0")),
+                        column(4,
+                               radioButtons("dataSimType", "Data Type:", c("Linear" = "linear", "Non-Linear" = "nonlin")),
+                               radioButtons("effectSizes", "Group Effect Sizes/Correlations:", c("Suggested 1" = "s1", "Suggested 2" = "s2", "Custom" = "cus")),
+                               textOutput("beta0"), textOutput("gamma0"),  textOutput("rho0")), 
                         column(4,
                              actionButton("computeData", "Generate Data", style='padding:10px; font-size:80%'), tags$br(), tags$br(),
                              conditionalPanel("input.computeData >= 1",
@@ -36,8 +37,9 @@ shinyUI(
                  conditionalPanel("input.effectSizes == 'cus'",
                   bsCollapse(id = "effectSizeCollapse", open = c("Effectsizes"), multiple = TRUE,
                     bsCollapsePanel(title = HTML("<h4><b>Custom Effect Sizes"), value = "Effectsizes", fluidRow(
-                        column(6, uiOutput("betas")),
-                        column(6, uiOutput("gammas"))
+                        column(3, uiOutput("betas")),
+                        column(3, uiOutput("gammas")),
+                        column(6, uiOutput("rhos"))
                       ))
                   )),
                 conditionalPanel("input.computeData >= 1",

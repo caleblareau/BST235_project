@@ -16,9 +16,11 @@ function(input, output, session) {
     x2 = NULL,
     fits = NULL,
     errs = NULL,
-    B0 = c(1,0.8,0.6,0.4,0.2,rep(0,5)),
-    G0 = c(rep(0,5), 0.5, 0.5, 0.5, rep(0,2)),
-    p = 10, 
+    B0 = c(0.8, 0.6, 0.4, 0, 0),
+    G0 = c(0.5, 0.5, 0.5, rep(0,2)),
+    rhovec = c(0.8, 0.5, 0.6, 0.2, 0.1),
+    npredictors = 2,
+    ngroups = 5, 
     tempB = 0,
     tempG = 0,
     
@@ -38,36 +40,48 @@ function(input, output, session) {
   #######
   observe({
     if(input$effectSizes == "s1"){
-      rv$B0 <- c(1,0.8,0.6,0.4,0.2,rep(0,rv$p-5))
-      rv$G0 <- c(rep(0,rv$p-5), 0.5, 0.5, 0.5, rep(0,2))
+      rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))
+      rv$G0 <- c(rep(0,rv$ngroups-5), 0.5, 0.5, 0.5, rep(0,2))
+      rv$rhovec <-  c(0.8, 0.5, 0.6, 0.2, 0.1)
     } else if(input$effectSizes == "s2") {
-      rv$B0 <- c(1,0.5,rep(0,rv$p-2))
-      rv$G0 <- c(rep(0,rv$p-5), 2, rep(1,4))
+      rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))
+      rv$G0 <- c(rep(0,rv$ngroups-5), 0.5, 0.5, 0.5, rep(0,2))
+      rv$rhovec <-  c(0.8, 0.5, 0.6, 0.2, 0.1)
     } else {
-      rv$B0 <- sapply(1:rv$p, function(i){input[[paste0("beta", i, "val")]]})
-      rv$G0 <- sapply(1:rv$p, function(i){input[[paste0("gamma", i, "val")]]})
+      rv$B0 <- sapply(1:rv$ngroups, function(i){input[[paste0("beta", i, "val")]]})
+      rv$G0 <- sapply(1:rv$ngroups, function(i){input[[paste0("gamma", i, "val")]]})
+      rv$rhovec <-  sapply(1:rv$ngroups, function(i){input[[paste0("rho", i, "val")]]})
     }
   })
   
-  observe({  rv$p = input$p  })
-
+  observe({  rv$npredictors = input$npredictors  })
+  observe({  rv$ngroups = input$ngroups  })
+  
   output$betas <- renderUI({
-    lapply(1:rv$p, function(i) {
-      sliderInput(paste0("beta", i, "val"), paste0('b0 Element ', i),
+    lapply(1:rv$ngroups, function(i) {
+      sliderInput(paste0("beta", i, "val"), paste0('Group ', i, ' Effect Size'),
                   min = 0, max = 5, value = 0, step = 0.1)
     })
   })
   
   output$gammas <- renderUI({
-    lapply(1:rv$p, function(i) {
-      sliderInput(paste0("gamma", i, "val"), paste0('g0 Element ', i),
+    lapply(1:rv$ngroups, function(i) {
+      sliderInput(paste0("gamma", i, "val"), paste0('Non-Linear Group ', i, ' Effect Size'),
                   min = 0, max = 5, value = 0, step = 0.1)
+    })
+  })
+  
+  output$rhos <- renderUI({
+    lapply(1:rv$ngroups, function(i) {
+      sliderInput(paste0("rho", i, "val"), paste0('Group ', i, ' Correlation'),
+                  min = 0.01, max = 0.99, value = 0.5, step = 0.05)
     })
   })
   
   # Preview Values
   output$beta0 <- renderText({paste0("b0 = (", paste(as.character(rv$B0), collapse = ", "), ")")})
   output$gamma0 <- renderText({paste0("g0 = (", paste(as.character(rv$G0), collapse = ", "), ")") })
+  output$rho0 <- renderText({paste0("Rho = (", paste(as.character(rv$rhovec), collapse = ", "), ")") })
   output$nasHeatmap <- renderUI(radioButtons("heatmapNAs", "Show Heatmap for", rv$modelsRan, selected = "Regular"))
   
   ######
@@ -77,35 +91,44 @@ function(input, output, session) {
   observeEvent(input$computeData, {
     
     n <- input$n
-    p <- rv$p
-    rho <- input$rho
+    p <- rv$npredictors
+    g <- rv$ngroups
+    bw <- input$brho
+    rho <- rv$rhovec
     
-    g <- function(x) exp(x)/(1 + exp(x))
+    gfn <- function(x) exp(x)/(1 + exp(x))
     
     # Constants
     a0 <- 0.2
     b0 <- 0.4
     
     # Effect Sizes
-    B0 <- rv$B0
-    G0 <- rv$G0 
+    B0 <- rep(rv$B0, each=p)
+    G0 <- rep(rv$G0, each=p)
     
     # Generate Data
-    X <- mvrnorm(n, rep(0, p), rho + (1-rho)*diag(p))
+    matlist <- lapply(1:g, function(gro){
+      matrix(rep(rho[gro], p^2), nrow = p)
+    })
+    
+    d <- data.matrix(bdiag(matlist))
+    diag(d) <- 1
+    d[d == 0] <- bw
+    X <- mvrnorm(n, rep(0, p*g), d)
     
     if(input$dataSimType == "linear"){
       hL <- a0 + X %*% B0
-      Y <- rbinom(n,1,g(hL))
+      Y <- rbinom(n,1,gfn(hL))
     } else {
       hN <- (a0 + X %*% B0) * (b0 + X %*% G0)
-      Y <- rbinom(n,1,g(hN))
+      Y <- rbinom(n,1,gfn(hN))
     }
     rv$df <- data.frame(Y, X)
     dat <- rv$df
     rv$x <- as.matrix(dat[,-1])
     rv$x2 <- makeInteractionMatrix(rv$x)
     rv$y <- as.matrix(dat[, 1])
-    print("done")
+    print("Finished data simulation")
   })
   
   #########
@@ -243,10 +266,9 @@ function(input, output, session) {
         
         # Intercept and Y cancel out so no need to reindex
         zeros <- which(as.numeric(coef(fit, s = "lambda.min")) == 0)
-        zeros <- zeros[zeros <= rv$p + 1]
+        zeros <- zeros[zeros <= rv$ngroups*rv$npredictors + 1]
         pdf[zeros,] <- NA
         pdf[,zeros] <- NA
-        print(pdf)
       }
       d3heatmap(pdf, Rowv = FALSE, Colv = FALSE, colors = "YlOrRd")
     } else {

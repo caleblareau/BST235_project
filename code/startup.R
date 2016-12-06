@@ -15,7 +15,7 @@ library(d3heatmap)
 
 source("code/helper.R")
 
-set.seed(420)
+set.seed(235)
 
 textInput3<-function (inputId, label, value = "",...){
     div(style="display:inline-block",
