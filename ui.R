@@ -12,7 +12,7 @@ shinyUI(
                     bsCollapsePanel(title = HTML("<h4><b>Simulation Parameters</b></h4>"), value = "Panel1",
                       fluidRow(
                         column(4, 
-                          sliderInput('n', 'Sample Size', value = 200, min = 100, max = 1000),
+                          sliderInput('n', 'Sample Size', value = 200, min = 100, max = 2000),
                           sliderInput('ngroups', 'Number of Groups', value = 5, min = 5, max = 20), 
                           sliderInput('npredictors', 'Number of Predictors Per Group', value = 2, min = 1, max = 10),
                           sliderInput('brho', 'Between-Group Correlation', value = 0.2, min = 0.01, max = 0.99)                            
@@ -39,7 +39,8 @@ shinyUI(
                     bsCollapsePanel(title = HTML("<h4><b>Custom Effect Sizes"), value = "Effectsizes", fluidRow(
                         column(3, uiOutput("betas")),
                         column(3, uiOutput("gammas")),
-                        column(6, uiOutput("rhos"))
+                        column(3, uiOutput("rhos")),
+                        column(3, HTML("<h4><b>Knockouts</b></h4>"), uiOutput("kos"))
                       ))
                   )),
                 conditionalPanel("input.computeData >= 1",

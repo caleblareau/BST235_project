@@ -18,6 +18,7 @@ function(input, output, session) {
     errs = NULL,
     B0 = c(0.8, 0.6, 0.4, 0, 0),
     G0 = c(0.5, 0.5, 0.5, rep(0,2)),
+    kos = c(FALSE, FALSE, FALSE, FALSE, FALSE),
     rhovec = c(0.8, 0.5, 0.6, 0.2, 0.1),
     npredictors = 2,
     ngroups = 5, 
@@ -43,14 +44,17 @@ function(input, output, session) {
       rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))
       rv$G0 <- c(rep(0,rv$ngroups-5), 0.5, 0.5, 0.5, rep(0,2))
       rv$rhovec <-  c(0.8, 0.5, 0.6, 0.2, 0.1)
+      rv$kos <- rep(FALSE, rv$ngroups)
     } else if(input$effectSizes == "s2") {
       rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))
       rv$G0 <- c(rep(0,rv$ngroups-5), 0.5, 0.5, 0.5, rep(0,2))
       rv$rhovec <-  c(0.8, 0.5, 0.6, 0.2, 0.1)
+      rv$kos <- rep(FALSE, rv$ngroups)
     } else {
       rv$B0 <- sapply(1:rv$ngroups, function(i){input[[paste0("beta", i, "val")]]})
       rv$G0 <- sapply(1:rv$ngroups, function(i){input[[paste0("gamma", i, "val")]]})
       rv$rhovec <-  sapply(1:rv$ngroups, function(i){input[[paste0("rho", i, "val")]]})
+      rv$kos <-  sapply(1:rv$ngroups, function(i){input[[paste0("ko", i, "val")]]})
     }
   })
   
@@ -75,6 +79,13 @@ function(input, output, session) {
     lapply(1:rv$ngroups, function(i) {
       sliderInput(paste0("rho", i, "val"), paste0('Group ', i, ' Correlation'),
                   min = 0.01, max = 0.99, value = 0.5, step = 0.05)
+    })
+  })
+  
+  output$kos <- renderUI({
+    lapply(1:rv$ngroups, function(i) {
+      checkboxInput(paste0("ko", i, "val"), paste0('Knockout Variable from Group ', i),
+                  value = FALSE)
     })
   })
   
@@ -105,6 +116,14 @@ function(input, output, session) {
     # Effect Sizes
     B0 <- rep(rv$B0, each=p)
     G0 <- rep(rv$G0, each=p)
+    
+    # Knock out genes
+    if(any(rv$kos)){
+      print("gene knocked out")
+      intidx <- which(rv$kos)
+      rmme <- intidx*p - 1
+      B0[rmme] <- 0
+    }
     
     # Generate Data
     matlist <- lapply(1:g, function(gro){
