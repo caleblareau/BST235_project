@@ -19,7 +19,7 @@ function(input, output, session) {
     B0 = c(0.8, 0.6, 0.4, 0, 0),
     G0 = c(0.5, 0.5, 0.5, rep(0,2)),
     kos = c(FALSE, FALSE, FALSE, FALSE, FALSE),
-    rhovec = c(0.8, 0.5, 0.6, 0.2, 0.1),
+    rhovec = c(0.800001, 0.5000001, 0.6000001, 0.2000001, 0.1000001),
     npredictors = 2,
     ngroups = 5, 
     tempB = 0,
@@ -43,7 +43,7 @@ function(input, output, session) {
     if(input$effectSizes == "s1"){
       rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))
       rv$G0 <- c(rep(0,rv$ngroups-5), 0.5, 0.5, 0.5, rep(0,2))
-      rv$rhovec <-  c(0.8, 0.5, 0.6, 0.2, 0.1)
+      rv$rhovec <-  c(0.8, rep(0.5,rv$ngroups-4), 0.6, 0.2, 0.1)
       rv$kos <- rep(FALSE, rv$ngroups)
     } else if(input$effectSizes == "s2") {
       rv$B0 <- c(0.8, 0.6, 0.4, 0, 0,rep(0,rv$ngroups-5))

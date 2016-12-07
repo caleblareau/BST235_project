@@ -2,8 +2,8 @@ name: BST235_project
 account: caleblareau
 server: shinyapps.io
 appId: 140311
-bundleId: 639374
+bundleId: 639657
 url: https://caleblareau.shinyapps.io/BST235_project/
-when: 1481126312.89921
+when: 1481136185.78497
 asMultiple: FALSE
 asStatic: FALSE
