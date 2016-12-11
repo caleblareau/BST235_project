@@ -3,10 +3,11 @@ source("code/startup.R")
 shinyUI(
     navbarPage(
         HTML("<img src='harvard-logo.png'/>"),
-        tabPanel("Visualize",
+        tabPanel("Welcome", includeMarkdown("www/guide.Rmd")),
+        tabPanel("Interactive",
                  fluidPage(
                    
-                   tags$h1('Input Data/Visualize Model Diagnostics'),
+                   tags$h1('Interactive Data Simulation Diagnostics'),
 
                    bsCollapse(id = "step1", open = c("Panel1"), 
                     bsCollapsePanel(title = HTML("<h4><b>Simulation Parameters</b></h4>"), value = "Panel1",
@@ -23,7 +24,7 @@ shinyUI(
                                textOutput("beta0"), textOutput("gamma0"),  textOutput("rho0")), 
                         column(4,
                              actionButton("computeData", "Generate Data", style='padding:10px; font-size:80%'), tags$br(), tags$br(),
-                             conditionalPanel("input.computeData >= 1",
+                             conditionalPanel("input.computeData >= 1000",
                                actionButton("runl1small", "Run L1 Small", style='padding:10px; font-size:80%'),
                                actionButton("runl1big", "Run L1 Big", style='padding:10px; font-size:80%'), tags$br(), tags$br(),
                                actionButton("runALsmall", "Run AL Small", style='padding:10px; font-size:80%'),
@@ -52,7 +53,7 @@ shinyUI(
                                     uiOutput("nasHeatmap")
                     )
                   )),
-                conditionalPanel("input.computeData >= 1",
+                conditionalPanel("input.computeData >= 1000",
                    bsCollapse(id = "plots", open = c(paste0("Panel", LETTERS[1:7])), multiple = TRUE,
                     bsCollapsePanel(title = HTML("<h4><b>L1 Norm Regular</b></h4>"), value = "PanelA", plotOutput('l1small', height = "800")),
                     bsCollapsePanel(title = HTML("<h4><b>L1 + Interactions</b></h4>"), value = "PanelB", plotOutput('l1big', height = "800")),
